@@ -6,15 +6,15 @@ records = []
 for line in open("ml-1m/ratings.dat"):
     user_id, item_id, rating, timestamp = line.strip().split("::")
     records.append([int(user_id), int(item_id), float(rating)])
-#random.shuffle(records)
-#records = np.array(records)
+records = np.array(records)
+np.random.shuffle(records)
 
-#ratio = 0.9
-#records_count = records.shape[0]
-#split_point = int(records_count * ratio)
+ratio = 0.9
+records_count = records.shape[0]
+split_point = int(records_count * ratio)
 
-#train = records[:split_point,]
-#test  = records[split_point:,]
+train = records[:split_point,]
+test  = records[split_point:,]
 
 user_count = 6040 + 1
 item_count = 3952 + 1
@@ -33,32 +33,42 @@ merge_model = tf.concat(2, [user_model, item_model])
 merge_model = tf.reshape(merge_model, [-1, embedding_size * 2])
 
 W1 = tf.Variable(tf.random_uniform([embedding_size * 2, 20], -1.0, 1.0))
-W2 = tf.Variable(tf.random_uniform([20, 10], -1.0, 1.0))
-W3 = tf.Variable(tf.random_uniform([10, 1], -1.0, 1.0))
+W2 = tf.Variable(tf.random_uniform([20, 1], -1.0, 1.0))
 b1 = tf.Variable(tf.zeros([1]))
 b2 = tf.Variable(tf.zeros([1]))
-b3 = tf.Variable(tf.zeros([1]))
 
 y1 = tf.sigmoid(tf.matmul(merge_model, W1)  + b1)
-y2 = tf.sigmoid(tf.matmul(y1, W2) + b2)
-y = tf.matmul(y2, W3) + b3
+y = tf.matmul(y1, W2) + b2
 
 loss = tf.reduce_mean(tf.square(y - rating))
-optimizer = tf.train.GradientDescentOptimizer(0.5)
-train = optimizer.minimize(loss)
+optimizer = tf.train.GradientDescentOptimizer(0.1)
+train_step = optimizer.minimize(loss)
 
-batch_size = 16
+rmse = tf.sqrt( tf.reduce_mean(tf.square(y - rating)))
+
+batch_size = 32
 
 with tf.Session() as sess:
     tf.initialize_all_variables().run()
-    for step in xrange(200):
-        print(step)
-        random.shuffle(records)
-        data = np.array(records)[:batch_size,]
-        train.run(feed_dict={
-            user_id : np.reshape( data[:,0] , (batch_size, 1) ),
-            item_id : np.reshape( data[:,1] , (batch_size, 1) ),
-            rating  : np.reshape( data[:,2] , (batch_size, 1) )
-        })
-        
 
+    for epoch in xrange(1, 21):
+        print(epoch)
+        
+        np.random.shuffle(train)
+
+        for i in range(train.shape[0]/batch_size):
+            data = train[i*batch_size:i*batch_size+batch_size,]
+        
+            train_step.run(feed_dict={
+                user_id : np.reshape( data[:,0] , (-1, 1) ),
+                item_id : np.reshape( data[:,1] , (-1, 1) ),
+                rating  : np.reshape( data[:,2] , (-1, 1) )
+            })
+    
+        result = rmse.eval(feed_dict={
+            user_id : np.reshape( test[:,0] , (-1, 1) ),
+            item_id : np.reshape( test[:,1] , (-1, 1) ),
+            rating  : np.reshape( test[:,2] , (-1, 1) )
+        })
+    
+        print(result)

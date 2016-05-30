@@ -34,21 +34,19 @@ model_right = Sequential()
 model_right.add(Embedding(item_count, 20, input_length=1))
 model = Sequential()
 model.add(Merge([model_left, model_right], mode='concat'))
+print(model.output_shape)
 model.add(Flatten())
+print(model.output_shape)
 model.add(Dense(20))
 model.add(Activation('sigmoid'))
-model.add(Dense(10))
-model.add(Activation('sigmoid'))
-# model.add(Dense(64))
-# model.add(Activation('sigmoid'))
 model.add(Dense(1))
 model.compile(loss='mean_squared_error', optimizer=SGD(lr=0.1, momentum=0., decay=0., nesterov=False))
 
 model.fit(
     [tr[:,0].reshape((L,1)), tr[:,1].reshape((L,1))],
     tr[:,2].reshape((L,1)),
-    batch_size=8,
-    nb_epoch=40,
+    batch_size=32,
+    nb_epoch=20,
     validation_data=(
         [ts[:,0].reshape((M,1)), ts[:,1].reshape((M,1))],
         ts[:,2].reshape((M,1))
