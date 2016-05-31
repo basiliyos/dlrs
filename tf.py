@@ -40,35 +40,33 @@ b2 = tf.Variable(tf.zeros([1]))
 y1 = tf.sigmoid(tf.matmul(merge_model, W1)  + b1)
 y = tf.matmul(y1, W2) + b2
 
-loss = tf.reduce_mean(tf.square(y - rating))
+mse = tf.reduce_mean(tf.square(y - rating))
+rmse = tf.sqrt(mse)
 optimizer = tf.train.GradientDescentOptimizer(0.1)
-train_step = optimizer.minimize(loss)
+train_step = optimizer.minimize(mse)
 
-rmse = tf.sqrt( tf.reduce_mean(tf.square(y - rating)))
-
+epoch_count = 20
 batch_size = 32
 
 with tf.Session() as sess:
     tf.initialize_all_variables().run()
 
-    for epoch in xrange(1, 21):
-        print(epoch)
-        
+    for epoch in xrange(1, epoch_count+1):
         np.random.shuffle(train)
 
         for i in range(train.shape[0]/batch_size):
             data = train[i*batch_size:i*batch_size+batch_size,]
         
             train_step.run(feed_dict={
-                user_id : np.reshape( data[:,0] , (-1, 1) ),
-                item_id : np.reshape( data[:,1] , (-1, 1) ),
-                rating  : np.reshape( data[:,2] , (-1, 1) )
+                user_id : data[:,0:1],
+                item_id : data[:,1:2],
+                rating  : data[:,2:3]
             })
     
         result = rmse.eval(feed_dict={
-            user_id : np.reshape( test[:,0] , (-1, 1) ),
-            item_id : np.reshape( test[:,1] , (-1, 1) ),
-            rating  : np.reshape( test[:,2] , (-1, 1) )
+            user_id : test[:,0:1],
+            item_id : test[:,1:2],
+            rating  : test[:,2:3]
         })
     
-        print(result)
+        print(epoch, result)
